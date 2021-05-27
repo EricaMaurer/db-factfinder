@@ -1,6 +1,7 @@
 import importlib
 import os
 from functools import cached_property
+from multiprocessing.pool import ThreadPool as Pool
 from pathlib import Path
 
 import numpy as np
@@ -52,9 +53,11 @@ class Download:
         self, download_function: callable, geotype: dict, v: Variable
     ) -> pd.DataFrame:
         geoqueries = self.geoqueries.get(geotype)
-        dfs = []
-        for geoquery in geoqueries:
-            dfs.append(download_function(geoquery, v))
+        with Pool(processes=5) as p:
+            dfs = [
+                p.apply(download_function, args=(geoquery, v))
+                for geoquery in geoqueries
+            ]
         return pd.concat(dfs)
 
     def download_e_m_p_z(self, geoquery: dict, v: Variable) -> pd.DataFrame:
